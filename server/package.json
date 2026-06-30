@@ -1,0 +1,38 @@
+{
+  "name": "interviewai-pro-server",
+  "version": "1.0.0",
+  "description": "Backend API server for InterviewAI Pro",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "test": "jest --runInBand --detectOpenHandles"
+  },
+  "dependencies": {
+    "@google/genai": "^2.10.0",
+    "bcryptjs": "^2.4.3",
+    "cloudinary": "^2.10.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.2.0",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.3.1",
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^6.9.13",
+    "openai": "^4.38.3",
+    "pdf-parse": "^1.1.1",
+    "pdfkit": "^0.15.0",
+    "razorpay": "^2.9.6",
+    "redis": "^6.0.1",
+    "socket.io": "^4.8.3",
+    "stripe": "^22.3.0",
+    "winston": "^3.19.0"
+  },
+  "devDependencies": {
+    "jest": "^30.4.2",
+    "nodemon": "^3.1.0",
+    "supertest": "^7.2.2"
+  }
+}

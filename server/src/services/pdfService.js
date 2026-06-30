@@ -1,0 +1,332 @@
+const PDFDocument = require('pdfkit');
+const fs = require('fs');
+const path = require('path');
+
+/**
+ * Generates a styled PDF report summarizing the resume optimization scores and metrics.
+ */
+const generateResumePDFReport = (resume, outputPath) => {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({ margin: 50 });
+      const stream = fs.createWriteStream(outputPath);
+
+      doc.pipe(stream);
+
+      // Colors
+      const primaryColor = '#0d9488'; // Teal-600
+      const secondaryColor = '#0f172a'; // Slate-900
+      const textColor = '#334155'; // Slate-700
+      const greyColor = '#94a3b8'; // Slate-400
+
+      // Title Section
+      doc
+        .fillColor(primaryColor)
+        .font('Helvetica-Bold')
+        .fontSize(26)
+        .text('InterviewAI Pro', 50, 50);
+
+      doc
+        .fillColor(secondaryColor)
+        .font('Helvetica')
+        .fontSize(14)
+        .text('Resume ATS Feedback & Optimization Report', 50, 80);
+
+      doc
+        .strokeColor(primaryColor)
+        .lineWidth(2)
+        .moveTo(50, 105)
+        .lineTo(550, 105)
+        .stroke();
+
+      // Score block
+      doc
+        .fillColor(secondaryColor)
+        .font('Helvetica-Bold')
+        .fontSize(14)
+        .text('ATS Optimization Score', 50, 130);
+
+      // Draw score badge
+      doc
+        .rect(50, 150, 120, 60)
+        .fill('#f0fdfa')
+        .strokeColor(primaryColor)
+        .lineWidth(1)
+        .stroke();
+
+      doc
+        .fillColor(primaryColor)
+        .font('Helvetica-Bold')
+        .fontSize(32)
+        .text(`${resume.atsScore}`, 75, 162);
+      
+      doc
+        .fillColor(textColor)
+        .font('Helvetica')
+        .fontSize(12)
+        .text('/ 100', 130, 178);
+
+      // Metadata
+      doc
+        .fillColor(textColor)
+        .font('Helvetica-Bold')
+        .fontSize(10)
+        .text('File Analyzed: ', 200, 150)
+        .font('Helvetica')
+        .text(resume.originalName, 280, 150)
+        .font('Helvetica-Bold')
+        .text('Analysis Date: ', 200, 170)
+        .font('Helvetica')
+        .text(new Date(resume.createdAt).toLocaleDateString(), 280, 170)
+        .font('Helvetica-Bold')
+        .text('Engine Version: ', 200, 190)
+        .font('Helvetica')
+        .text('InterviewAI ATS v1.2', 285, 190);
+
+      // Section: Missing Skills
+      doc
+        .fillColor(secondaryColor)
+        .font('Helvetica-Bold')
+        .fontSize(14)
+        .text('Detected Missing Skills & Keywords', 50, 240);
+
+      let skillY = 265;
+      if (resume.feedback.missingSkills && resume.feedback.missingSkills.length > 0) {
+        resume.feedback.missingSkills.forEach(skill => {
+          doc
+            .fillColor(primaryColor)
+            .text('• ', 55, skillY)
+            .fillColor(textColor)
+            .font('Helvetica')
+            .text(skill, 70, skillY);
+          skillY += 20;
+        });
+      } else {
+        doc.fillColor(textColor).text('No critical skills missing detected.', 50, skillY);
+        skillY += 20;
+      }
+
+      // Section: Keyword Optimizations
+      doc
+        .fillColor(secondaryColor)
+        .font('Helvetica-Bold')
+        .fontSize(14)
+        .text('Keyword & Placement Enhancements', 50, skillY + 15);
+
+      let keywordY = skillY + 40;
+      if (resume.feedback.keywordOptimization && resume.feedback.keywordOptimization.length > 0) {
+        resume.feedback.keywordOptimization.forEach(opt => {
+          doc
+            .fillColor(primaryColor)
+            .font('Helvetica-Bold')
+            .text(opt.keyword, 50, keywordY)
+            .font('Helvetica')
+            .fillColor(textColor)
+            .text(` - ${opt.reason}`, 150, keywordY, { width: 400 });
+          keywordY += 25;
+        });
+      } else {
+        doc.fillColor(textColor).text('Keywords are fully aligned with industry targets.', 50, keywordY);
+        keywordY += 20;
+      }
+
+      // Section: Role Suitability
+      doc
+        .fillColor(secondaryColor)
+        .font('Helvetica-Bold')
+        .fontSize(14)
+        .text('Role Suitability Ratings', 50, keywordY + 15);
+
+      let roleY = keywordY + 40;
+      if (resume.feedback.roleSuitability && resume.feedback.roleSuitability.length > 0) {
+        resume.feedback.roleSuitability.forEach(roleInfo => {
+          doc
+            .fillColor(secondaryColor)
+            .font('Helvetica-Bold')
+            .text(`${roleInfo.role} (${roleInfo.score}% match)`, 50, roleY)
+            .font('Helvetica')
+            .fillColor(textColor)
+            .text(roleInfo.reason, 50, roleY + 15, { width: 500 });
+          roleY += 45;
+        });
+      }
+
+      // Footer
+      const pageCount = doc.bufferedPageRange().count;
+      for (let i = 0; i < pageCount; i++) {
+        doc.switchToPage(i);
+        doc
+          .fillColor(greyColor)
+          .font('Helvetica')
+          .fontSize(9)
+          .text(
+            'Generated by InterviewAI Pro. Empowering candidates with intelligent interview systems.',
+            50,
+            720,
+            { align: 'center', width: 500 }
+          );
+      }
+
+      doc.end();
+
+      stream.on('finish', () => resolve(outputPath));
+      stream.on('error', err => reject(err));
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
+const generateInterviewPDFReport = (result, candidateName, candidateEmail, mockType, outputPath) => {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({ margin: 50 });
+      const stream = fs.createWriteStream(outputPath);
+
+      doc.pipe(stream);
+
+      // Colors
+      const primaryColor = '#0891b2'; // Cyan-600
+      const secondaryColor = '#0f172a'; // Slate-900
+      const textColor = '#334155'; // Slate-700
+      const greyColor = '#94a3b8'; // Slate-400
+
+      // Title Section
+      doc
+        .fillColor(primaryColor)
+        .font('Helvetica-Bold')
+        .fontSize(24)
+        .text('InterviewAI Pro', 50, 50);
+
+      doc
+        .fillColor(secondaryColor)
+        .font('Helvetica')
+        .fontSize(13)
+        .text('Mock Interview Evaluation Scorecard Report', 50, 80);
+
+      doc
+        .strokeColor(primaryColor)
+        .lineWidth(2)
+        .moveTo(50, 105)
+        .lineTo(550, 105)
+        .stroke();
+
+      // Candidate Profile info
+      doc
+        .fillColor(secondaryColor)
+        .font('Helvetica-Bold')
+        .fontSize(11)
+        .text('Candidate Profile Details:', 50, 120);
+
+      doc
+        .font('Helvetica')
+        .fontSize(10)
+        .fillColor(textColor)
+        .text(`Name: ${candidateName}`, 50, 135)
+        .text(`Email: ${candidateEmail}`, 50, 150)
+        .text(`Interview Track: ${mockType} Session`, 50, 165)
+        .text(`Evaluation Date: ${new Date(result.createdAt || Date.now()).toLocaleDateString()}`, 50, 180);
+
+      // Score Metrics block
+      doc
+        .fillColor(secondaryColor)
+        .font('Helvetica-Bold')
+        .fontSize(11)
+        .text('Performance Scores Summary:', 320, 120);
+
+      doc
+        .font('Helvetica-Bold')
+        .fontSize(11)
+        .fillColor(primaryColor)
+        .text(`Overall Score: ${result.overallScore}%`, 320, 135)
+        .fillColor(textColor)
+        .font('Helvetica')
+        .text(`Technical Score: ${result.technicalScore}%`, 320, 150)
+        .text(`Communication Score: ${result.communicationScore}%`, 320, 165)
+        .text(`Confidence Rating: ${result.confidenceScore}%`, 320, 180);
+
+      doc
+        .strokeColor('#e2e8f0')
+        .lineWidth(1)
+        .moveTo(50, 205)
+        .lineTo(550, 205)
+        .stroke();
+
+      // Executive Feedback summary
+      doc
+        .fillColor(secondaryColor)
+        .font('Helvetica-Bold')
+        .fontSize(12)
+        .text('Executive Performance Summary:', 50, 220);
+
+      doc
+        .font('Helvetica')
+        .fontSize(10)
+        .fillColor(textColor)
+        .text(result.detailedFeedback, 50, 240, { width: 500, align: 'justify', lineGap: 3 });
+
+      // Transcripts QA mapping
+      let yOffset = doc.y + 25;
+      
+      doc
+        .fillColor(secondaryColor)
+        .font('Helvetica-Bold')
+        .fontSize(12)
+        .text('Question-by-Question Evaluation Details:', 50, yOffset);
+
+      yOffset += 20;
+
+      result.suggestedAnswers.forEach((item, index) => {
+        // Prevent layout overflow page breaks
+        if (yOffset > 600) {
+          doc.addPage();
+          yOffset = 50;
+        }
+
+        doc
+          .fillColor(secondaryColor)
+          .font('Helvetica-Bold')
+          .fontSize(10)
+          .text(`Q${index + 1}: ${item.question}`, 50, yOffset, { width: 500 });
+        
+        yOffset = doc.y + 5;
+
+        doc
+          .fillColor(textColor)
+          .font('Helvetica')
+          .fontSize(9.5)
+          .text(`Better Practice: ${item.betterAnswer}`, 50, yOffset, { width: 500, lineGap: 2 });
+
+        yOffset = doc.y + 15;
+      });
+
+      // Footer
+      const pageCount = doc.bufferedPageRange().count;
+      for (let i = 0; i < pageCount; i++) {
+        doc.switchToPage(i);
+        doc
+          .fillColor(greyColor)
+          .font('Helvetica')
+          .fontSize(9)
+          .text(
+            'Generated by InterviewAI Pro. Empowering candidates with intelligent interview systems.',
+            50,
+            720,
+            { align: 'center', width: 500 }
+          );
+      }
+
+      doc.end();
+
+      stream.on('finish', () => resolve(outputPath));
+      stream.on('error', err => reject(err));
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
+module.exports = { 
+  generateResumePDFReport,
+  generateInterviewPDFReport
+};
