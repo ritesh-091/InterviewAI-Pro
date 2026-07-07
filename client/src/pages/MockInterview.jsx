@@ -79,7 +79,7 @@ const MockInterview = () => {
     if (step === 'interview' && interview?._id) {
       const socketUrl = window.location.origin.includes('localhost') 
         ? 'http://localhost:5000' 
-        : window.location.origin;
+        : (import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : window.location.origin);
 
       const socketConn = io(socketUrl, { transports: ['websocket'] });
       setSocket(socketConn);

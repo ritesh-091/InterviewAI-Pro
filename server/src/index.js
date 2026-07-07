@@ -13,6 +13,8 @@ const connectDB = require('./config/db');
 const errorHandler = require('./middleware/errorHandler');
 const { apiLimiter } = require('./middleware/rateLimiter');
 const { metricsMiddleware, getPrometheusMetrics } = require('./services/monitorService');
+const compression = require('compression');
+const morgan = require('morgan');
 
 // Connect to Database
 connectDB();
@@ -34,6 +36,8 @@ if (!fs.existsSync(uploadsDir)) {
 app.use(helmet({
   crossOriginResourcePolicy: false // Allows loading assets/PDFs on the client
 }));
+app.use(compression());
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(cors({
   origin: process.env.CLIENT_URL || 'http://localhost:5173',
   credentials: true
@@ -82,6 +86,23 @@ app.get('/test', async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// Serve static assets from the React client build directory
+const clientBuildPath = path.join(__dirname, '../../client/dist');
+app.use(express.static(clientBuildPath));
+
+// Serve index.html for all non-API paths (to let React Router handle client-side routing)
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api') || req.path.startsWith('/uploads') || req.path.startsWith('/metrics') || req.path.startsWith('/health')) {
+    return next();
+  }
+  const indexPath = path.join(clientBuildPath, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).send('Frontend build not found. Please run npm run build in the client directory.');
   }
 });
 

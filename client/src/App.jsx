@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
 // Context Providers
@@ -11,21 +11,30 @@ import { AuthProvider } from './context/AuthContext';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 
-// Pages
-import Login from './pages/Login';
-import Register from './pages/Register';
-import VerifyEmail from './pages/VerifyEmail';
-import ForgotPassword from './pages/ForgotPassword';
-import Dashboard from './pages/Dashboard';
-import ResumeAnalyzer from './pages/ResumeAnalyzer';
-import MockInterview from './pages/MockInterview';
-import CodingPractice from './pages/CodingPractice';
-import CareerCoach from './pages/CareerCoach';
-import CompanyPrep from './pages/CompanyPrep';
-import Profile from './pages/Profile';
-import Subscriptions from './pages/Subscriptions';
-import AdminPanel from './pages/AdminPanel';
-import RecruiterDashboard from './pages/RecruiterDashboard';
+// Lazy-loaded Pages
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const ResumeAnalyzer = lazy(() => import('./pages/ResumeAnalyzer'));
+const MockInterview = lazy(() => import('./pages/MockInterview'));
+const CodingPractice = lazy(() => import('./pages/CodingPractice'));
+const CareerCoach = lazy(() => import('./pages/CareerCoach'));
+const CompanyPrep = lazy(() => import('./pages/CompanyPrep'));
+const Profile = lazy(() => import('./pages/Profile'));
+const Subscriptions = lazy(() => import('./pages/Subscriptions'));
+const AdminPanel = lazy(() => import('./pages/AdminPanel'));
+const RecruiterDashboard = lazy(() => import('./pages/RecruiterDashboard'));
+
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen bg-slate-950 text-white">
+    <div className="flex flex-col items-center gap-4">
+      <div className="w-12 h-12 border-4 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
+      <p className="text-slate-400 font-medium animate-pulse">Loading InterviewAI Pro...</p>
+    </div>
+  </div>
+);
 
 function App() {
   return (
@@ -34,57 +43,61 @@ function App() {
         <LanguageProvider>
           <ThemeProvider>
             <AuthProvider>
-              <Routes>
-                
-                {/* Public Auth Routes */}
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/verify-email" element={<VerifyEmail />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  
+                  {/* Public Auth Routes */}
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                  <Route path="/verify-email" element={<VerifyEmail />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
 
-                {/* Secure Protected Workspace Routes */}
-                <Route
-                  path="/*"
-                  element={
-                    <ProtectedRoute>
-                      <Layout>
-                        <Routes>
-                          <Route path="/" element={<Dashboard />} />
-                          <Route path="/resume-analyzer" element={<ResumeAnalyzer />} />
-                          <Route path="/mock-interview" element={<MockInterview />} />
-                          <Route path="/mock-interview/result/:interviewId" element={<MockInterview />} />
-                          <Route path="/coding-practice" element={<CodingPractice />} />
-                          <Route path="/career-coach" element={<CareerCoach />} />
-                          <Route path="/company-prep" element={<CompanyPrep />} />
-                          <Route path="/profile" element={<Profile />} />
-                          <Route path="/subscriptions" element={<Subscriptions />} />
-                          
-                          {/* Recruiter Only Route */}
-                          <Route
-                            path="/recruiter"
-                            element={
-                              <ProtectedRoute recruiterOnly>
-                                <RecruiterDashboard />
-                              </ProtectedRoute>
-                            }
-                          />
+                  {/* Secure Protected Workspace Routes */}
+                  <Route
+                    path="/*"
+                    element={
+                      <ProtectedRoute>
+                        <Layout>
+                          <Suspense fallback={<PageLoader />}>
+                            <Routes>
+                              <Route path="/" element={<Dashboard />} />
+                              <Route path="/resume-analyzer" element={<ResumeAnalyzer />} />
+                              <Route path="/mock-interview" element={<MockInterview />} />
+                              <Route path="/mock-interview/result/:interviewId" element={<MockInterview />} />
+                              <Route path="/coding-practice" element={<CodingPractice />} />
+                              <Route path="/career-coach" element={<CareerCoach />} />
+                              <Route path="/company-prep" element={<CompanyPrep />} />
+                              <Route path="/profile" element={<Profile />} />
+                              <Route path="/subscriptions" element={<Subscriptions />} />
+                              
+                              {/* Recruiter Only Route */}
+                              <Route
+                                path="/recruiter"
+                                element={
+                                  <ProtectedRoute recruiterOnly>
+                                    <RecruiterDashboard />
+                                  </ProtectedRoute>
+                                }
+                              />
 
-                          {/* Admin Only Route */}
-                          <Route
-                            path="/admin"
-                            element={
-                              <ProtectedRoute adminOnly>
-                                <AdminPanel />
-                              </ProtectedRoute>
-                            }
-                          />
-                        </Routes>
-                      </Layout>
-                    </ProtectedRoute>
-                  }
-                />
+                              {/* Admin Only Route */}
+                              <Route
+                                path="/admin"
+                                element={
+                                  <ProtectedRoute adminOnly>
+                                    <AdminPanel />
+                                  </ProtectedRoute>
+                                }
+                              />
+                            </Routes>
+                          </Suspense>
+                        </Layout>
+                      </ProtectedRoute>
+                    }
+                  />
 
-              </Routes>
+                </Routes>
+              </Suspense>
             </AuthProvider>
           </ThemeProvider>
         </LanguageProvider>

@@ -13,7 +13,7 @@ const signAccessToken = (id) => {
 
 // Helper function to sign JWT refresh tokens
 const signRefreshToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET_REFRESH || 'super_secret_refresh_key_interviewai_pro_2026', {
+  return jwt.sign({ id }, process.env.JWT_SECRET_REFRESH || process.env.JWT_REFRESH_SECRET || 'super_secret_refresh_key_interviewai_pro_2026', {
     expiresIn: '7d'
   });
 };
@@ -332,7 +332,7 @@ const refresh = async (req, res, next) => {
       return res.status(401).json({ message: 'Refresh token is required' });
     }
 
-    const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET_REFRESH || 'super_secret_refresh_key_interviewai_pro_2026');
+    const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET_REFRESH || process.env.JWT_REFRESH_SECRET || 'super_secret_refresh_key_interviewai_pro_2026');
     const user = await User.findById(decoded.id);
 
     if (!user || user.refreshToken !== refreshToken) {
