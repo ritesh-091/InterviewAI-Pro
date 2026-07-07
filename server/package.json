@@ -7,7 +7,7 @@
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "test": "jest --runInBand --detectOpenHandles",
-    "build": "npm install --prefix ../client && npm run build --prefix ../client"
+    "build": "cd ../client && npm install --include=dev && npm run build"
   },
   "dependencies": {
     "@google/genai": "^2.10.0",
