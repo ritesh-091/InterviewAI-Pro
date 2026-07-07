@@ -5,7 +5,7 @@ const Schedule = require('../models/Schedule');
  */
 const getGoogleCalendarUrl = (schedule) => {
   const title = `InterviewAI Pro: ${schedule.type} Mock Interview (${schedule.companyName})`;
-  const details = `Get ready for your AI-evaluated mock round at InterviewAI Pro.\nNotes: ${schedule.notes || 'None'}\n\nStart practicing at: http://localhost:5173/mock-interview`;
+  const details = `Get ready for your AI-evaluated mock round at InterviewAI Pro.\nNotes: ${schedule.notes || 'None'}\n\nStart practicing at: ${process.env.CLIENT_URL || 'http://localhost:5173'}/mock-interview`;
   
   const start = new Date(schedule.scheduledDate);
   const end = new Date(start.getTime() + (schedule.durationMinutes || 30) * 60 * 1000);

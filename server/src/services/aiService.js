@@ -429,21 +429,28 @@ const compareResumeToJobDescription = async (resumeText, jobDescriptionText) => 
   };
 };
 
-/**
- * 7. Get chatbot streaming response
- */
 const getCoachResponseStream = async (msg, chatHistory = []) => {
-  if (!geminiAi) {
-    throw new Error('Gemini GenAI SDK is not configured.');
+  const provider = (process.env.AI_PROVIDER || 'openai').toLowerCase();
+
+  if (provider === 'gemini' && geminiAi) {
+    const context = chatHistory.map(c => `${c.sender === 'user' ? 'Candidate' : 'Coach'}: ${c.text}`).join('\n');
+    const prompt = `You are a supportive, high-caliber career and technical placement coach named InterviewAI Pro Coach. Assist the candidate. Respond concisely. Context:\n${context}\nCandidate: ${msg}`;
+
+    return geminiAi.models.generateContentStream({
+      model: 'gemini-2.5-flash',
+      contents: prompt
+    });
   }
 
-  const context = chatHistory.map(c => `${c.sender === 'user' ? 'Candidate' : 'Coach'}: ${c.text}`).join('\n');
-  const prompt = `You are a supportive, high-caliber career and technical placement coach named InterviewAI Pro Coach. Assist the candidate. Respond concisely. Context:\n${context}\nCandidate: ${msg}`;
-
-  return geminiAi.models.generateContentStream({
-    model: 'gemini-2.5-flash',
-    contents: prompt
-  });
+  // Generate a mock stream fallback
+  const mockResponse = await getCoachResponse(msg, chatHistory);
+  return (async function* () {
+    const words = mockResponse.split(' ');
+    for (let i = 0; i < words.length; i++) {
+      yield { text: words[i] + (i < words.length - 1 ? ' ' : '') };
+      await new Promise(resolve => setTimeout(resolve, 30)); // 30ms simulation delay
+    }
+  })();
 };
 
 module.exports = {
