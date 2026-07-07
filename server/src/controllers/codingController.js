@@ -85,8 +85,13 @@ const seedChallengesIfNeeded = async () => {
   }
 };
 
-// Seed immediately on import
-setTimeout(seedChallengesIfNeeded, 2000);
+// Seed only after MongoDB connection is active
+const mongoose = require('mongoose');
+if (mongoose.connection.readyState === 1) {
+  seedChallengesIfNeeded();
+} else {
+  mongoose.connection.once('open', seedChallengesIfNeeded);
+}
 
 // 1. Get Coding Challenges
 const getChallenges = async (req, res, next) => {

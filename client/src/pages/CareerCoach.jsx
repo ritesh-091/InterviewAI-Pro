@@ -65,7 +65,8 @@ const CareerCoach = () => {
     try {
       const historyLog = messages.map(m => ({ sender: m.sender, text: m.text }));
       
-      const response = await fetch('/api/coach/chat/stream', {
+      const apiBase = import.meta.env.VITE_API_URL || '/api';
+      const response = await fetch(`${apiBase}/coach/chat/stream`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

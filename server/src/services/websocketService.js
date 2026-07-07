@@ -7,7 +7,7 @@ const socketIo = require('socket.io');
 const initWebSocket = (server) => {
   const io = socketIo(server, {
     cors: {
-      origin: '*',
+      origin: process.env.CLIENT_URL || '*',
       methods: ['GET', 'POST'],
       credentials: true
     }

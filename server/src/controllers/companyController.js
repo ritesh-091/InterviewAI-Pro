@@ -125,8 +125,13 @@ const seedCompaniesIfNeeded = async () => {
   }
 };
 
-// Seed immediately on import
-setTimeout(seedCompaniesIfNeeded, 2500);
+// Seed only after MongoDB connection is active
+const mongoose = require('mongoose');
+if (mongoose.connection.readyState === 1) {
+  seedCompaniesIfNeeded();
+} else {
+  mongoose.connection.once('open', seedCompaniesIfNeeded);
+}
 
 // 1. Get List of all Companies
 const getCompanies = async (req, res, next) => {

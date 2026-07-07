@@ -20,7 +20,7 @@ services:
       - "5000:5000"
     environment:
       - PORT=5000
-      - MONGODB_URI=mongodb://mongodb:27017/interviewai_pro
+      - MONGO_URI=mongodb://mongodb:27017/interviewai_pro
       - JWT_SECRET=super_secret_jwt_key_interviewai_pro_2026
       - JWT_SECRET_REFRESH=super_secret_refresh_key_interviewai_pro_2026
       - CLIENT_URL=http://localhost
