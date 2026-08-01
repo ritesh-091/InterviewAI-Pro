@@ -32,6 +32,10 @@ const codingChallengeSchema = new mongoose.Schema({
     type: [String],
     default: []
   },
+  hints: {
+    type: [String],
+    default: []
+  },
   testCases: [{
     input: { type: String, required: true },
     expectedOutput: { type: String, required: true },
