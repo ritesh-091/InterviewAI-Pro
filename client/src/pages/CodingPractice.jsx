@@ -12,12 +12,10 @@ import {
   Award, 
   BookOpen, 
   Layers,
-  ArrowRight,
   Code,
   RefreshCw,
   Search,
   SlidersHorizontal,
-  ChevronRight,
   Moon,
   Sun,
   Type,
@@ -57,6 +55,41 @@ const COMPANIES = [
   "Accenture"
 ];
 
+// Standard SaaS-quality boilerplate templates for each programming language
+const DEFAULT_TEMPLATES = {
+  c: `#include <stdio.h>
+
+int main() {
+    // Write your code here
+
+    return 0;
+}`,
+  cpp: `#include <iostream>
+using namespace std;
+
+int main() {
+    // Write your code here
+
+    return 0;
+}`,
+  java: `public class Main {
+    public static void main(String[] args) {
+        // Write your code here
+    }
+}`,
+  python: `def solve():
+    # Write your code here
+    pass
+
+if __name__ == "__main__":
+    solve()`,
+  javascript: `function solve() {
+    // Write your code here
+}
+
+solve();`
+};
+
 const CodingPractice = () => {
   const [challenges, setChallenges] = useState([]);
   const [selectedChallenge, setSelectedChallenge] = useState(null);
@@ -82,15 +115,22 @@ const CodingPractice = () => {
   const [isResizingWidth, setIsResizingWidth] = useState(false);
   const [isResizingHeight, setIsResizingHeight] = useState(false);
   
+  // Monaco Loading & Fallback state
+  const [monacoLoaded, setMonacoLoaded] = useState(false);
+  const [useFallbackEditor, setUseFallbackEditor] = useState(false);
+
   const containerRef = useRef(null);
   const rightContainerRef = useRef(null);
+  const textareaRef = useRef(null);
+  const gutterRef = useRef(null);
+  const lastTemplateRef = useRef('');
+  
   const { addToast } = useNotification();
 
   // Load challenges from server
   const fetchChallenges = useCallback(async () => {
     setLoading(true);
     try {
-      // Build search query params
       const params = new URLSearchParams();
       if (selectedCategory !== 'All Topics') params.append('category', selectedCategory);
       if (selectedDifficulty !== 'All') params.append('difficulty', selectedDifficulty);
@@ -100,16 +140,17 @@ const CodingPractice = () => {
       const data = await apiRequest(`/coding/challenges?${params.toString()}`);
       setChallenges(data);
       if (data.length > 0) {
-        // Find if current selection is still in list
         const active = data.find(ch => ch._id === selectedChallenge?._id) || data[0];
         setSelectedChallenge(active);
         
-        // Populate code template
-        const key = language === 'cpp' ? 'cpp' : language;
-        setCode(active.codeTemplates[key] || active.codeTemplates.javascript);
+        // Initial template loading
+        const initialTemplate = DEFAULT_TEMPLATES[language] || DEFAULT_TEMPLATES.javascript;
+        setCode(initialTemplate);
+        lastTemplateRef.current = initialTemplate;
       } else {
         setSelectedChallenge(null);
         setCode('');
+        lastTemplateRef.current = '';
       }
     } catch (err) {
       console.error(err);
@@ -136,26 +177,52 @@ const CodingPractice = () => {
     fetchLeaderboard();
   }, []);
 
-  // Trigger search on debounce/delay or button press
+  // Timer to trigger styled textarea fallback if Monaco CDN fails to load within 2 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!monacoLoaded) {
+        console.log("Monaco load timeout: falling back to custom styled text editor.");
+        setUseFallbackEditor(true);
+      }
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [monacoLoaded]);
+
+  // Synchronize textarea scroll position with line numbers gutter
+  const handleTextareaScroll = () => {
+    if (textareaRef.current && gutterRef.current) {
+      gutterRef.current.scrollTop = textareaRef.current.scrollTop;
+    }
+  };
+
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     fetchChallenges();
   };
 
   const handleChallengeChange = (ch) => {
+    if (code && code !== lastTemplateRef.current) {
+      if (!window.confirm("You have modified your code. Switching challenges will discard your changes. Do you want to proceed?")) {
+        return;
+      }
+    }
     setSelectedChallenge(ch);
     setResults(null);
-    const key = language === 'cpp' ? 'cpp' : language;
-    setCode(ch.codeTemplates[key] || ch.codeTemplates.javascript);
+    const tmpl = DEFAULT_TEMPLATES[language] || DEFAULT_TEMPLATES.javascript;
+    setCode(tmpl);
+    lastTemplateRef.current = tmpl;
   };
 
   const handleLanguageChange = (lang) => {
-    setLanguage(lang);
-    if (selectedChallenge) {
-      const templates = selectedChallenge.codeTemplates;
-      const key = lang === 'cpp' ? 'cpp' : lang;
-      setCode(templates[key] || templates.javascript);
+    if (code && code !== lastTemplateRef.current) {
+      if (!window.confirm("You have modified your code. Changing the language will discard your changes. Do you want to proceed?")) {
+        return;
+      }
     }
+    setLanguage(lang);
+    const tmpl = DEFAULT_TEMPLATES[lang] || DEFAULT_TEMPLATES.javascript;
+    setCode(tmpl);
+    lastTemplateRef.current = tmpl;
   };
 
   const handleRunCode = async () => {
@@ -176,7 +243,7 @@ const CodingPractice = () => {
       setResults(res);
       if (res.allPassed) {
         addToast('All Tests Passed!', 'Great job! Complexity analysis unlocked.', 'success');
-        fetchLeaderboard(); // Reload points
+        fetchLeaderboard();
       } else {
         addToast('Tests Failed', 'Review console output to debug errors.', 'warning');
       }
@@ -196,7 +263,6 @@ const CodingPractice = () => {
   // Drag handlers for splitting height
   const handleHeightMouseDown = (e) => {
     e.preventDefault();
-    setIsResizingHeight(false); // set state correctly
     setIsResizingHeight(true);
   };
 
@@ -235,8 +301,10 @@ const CodingPractice = () => {
     };
   }, [isResizingWidth, isResizingHeight]);
 
+  const lines = useMemo(() => (code || '').split('\n'), [code]);
+
   return (
-    <div className="space-y-6 select-none font-outfit text-brand-textSec">
+    <div className="space-y-6 font-outfit text-brand-textSec">
       
       {/* Top redline layout header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between border-b border-white/5 pb-5">
@@ -525,27 +593,89 @@ const CodingPractice = () => {
                     </button>
                   </div>
 
-                  {/* Monaco IDE Mount */}
-                  <div className="flex-1 w-full rounded-xl overflow-hidden border border-white/5 shadow-inner">
-                    <Editor
-                      height="100%"
-                      language={language === 'c' ? 'c' : (language === 'cpp' ? 'cpp' : language)}
-                      theme={editorTheme}
-                      value={code}
-                      onChange={(val) => setCode(val)}
-                      options={{
-                        fontSize: fontSize,
-                        minimap: { enabled: false },
-                        automaticLayout: true,
-                        tabSize: 2,
-                        fontFamily: 'Consolas, Courier New, monospace',
-                        quickSuggestions: { other: true, comments: true, strings: true },
-                        suggestOnTriggerCharacters: true,
-                        wordBasedSuggestions: true,
-                        cursorBlinking: 'smooth',
-                        formatOnPaste: true,
-                      }}
-                    />
+                  {/* Monaco IDE Mount Container with correct flex properties */}
+                  <div className="flex-1 w-full rounded-xl overflow-hidden border border-white/5 shadow-inner bg-brand-dark/20 flex flex-col relative h-[calc(100%-55px)]">
+                    {useFallbackEditor ? (
+                      /* Resilient fallback text editor */
+                      <div className="flex h-full w-full bg-brand-dark/40 font-mono text-xs relative overflow-hidden">
+                        {/* Gutter Line Numbers */}
+                        <div 
+                          ref={gutterRef}
+                          className="select-none text-right pr-3.5 pl-3 py-3 text-white/20 bg-black/30 flex flex-col font-mono overflow-hidden h-full"
+                          style={{ 
+                            fontSize: `${fontSize}px`,
+                            lineHeight: '1.6',
+                            fontFamily: 'Consolas, Courier New, monospace'
+                          }}
+                        >
+                          {lines.map((_, idx) => (
+                            <span key={idx} className="block select-none">{idx + 1}</span>
+                          ))}
+                        </div>
+                        
+                        {/* Core text editing input */}
+                        <textarea
+                          ref={textareaRef}
+                          value={code}
+                          onChange={(e) => setCode(e.target.value)}
+                          onScroll={handleTextareaScroll}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Tab') {
+                              e.preventDefault();
+                              const start = e.target.selectionStart;
+                              const end = e.target.selectionEnd;
+                              const val = e.target.value;
+                              const newVal = val.substring(0, start) + '    ' + val.substring(end);
+                              setCode(newVal);
+                              setTimeout(() => {
+                                e.target.selectionStart = e.target.selectionEnd = start + 4;
+                              }, 0);
+                            }
+                          }}
+                          style={{ 
+                            fontSize: `${fontSize}px`,
+                            lineHeight: '1.6',
+                            fontFamily: 'Consolas, Courier New, monospace'
+                          }}
+                          className="flex-1 p-3 bg-transparent text-white/95 border-none outline-none resize-none h-full font-mono overflow-y-auto leading-relaxed focus:ring-0 focus:outline-none"
+                          placeholder="// Type your solution code here..."
+                        />
+                        <span className="absolute bottom-2.5 right-3.5 text-[9px] uppercase tracking-widest font-black text-brand-indigo/60 pointer-events-none select-none bg-brand-indigo/10 px-2 py-0.5 rounded border border-brand-indigo/20">
+                          Sandbox Editor Fallback
+                        </span>
+                      </div>
+                    ) : (
+                      /* Classic VS-Code-like Monaco component */
+                      <Editor
+                        height="100%"
+                        language={language === 'c' ? 'c' : (language === 'cpp' ? 'cpp' : language)}
+                        theme={editorTheme}
+                        value={code}
+                        onMount={() => {
+                          setMonacoLoaded(true);
+                          setUseFallbackEditor(false);
+                        }}
+                        onChange={(val) => setCode(val || '')}
+                        loading={
+                          <div className="flex flex-col items-center justify-center h-full gap-2.5">
+                            <RefreshCw className="h-5 w-5 animate-spin text-brand-indigo" />
+                            <p className="text-[10px] text-brand-textSec animate-pulse uppercase tracking-wider font-extrabold">Instantiating Monaco compiler engine...</p>
+                          </div>
+                        }
+                        options={{
+                          fontSize: fontSize,
+                          minimap: { enabled: false },
+                          automaticLayout: true,
+                          tabSize: 2,
+                          fontFamily: 'Consolas, Courier New, monospace',
+                          quickSuggestions: { other: true, comments: true, strings: true },
+                          suggestOnTriggerCharacters: true,
+                          wordBasedSuggestions: true,
+                          cursorBlinking: 'smooth',
+                          formatOnPaste: true,
+                        }}
+                      />
+                    )}
                   </div>
                 </div>
 
