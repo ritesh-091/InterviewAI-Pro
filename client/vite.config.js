@@ -71,9 +71,6 @@ export default defineConfig({
             if (id.includes('recharts')) {
               return 'vendor-charts';
             }
-            if (id.includes('@monaco-editor') || id.includes('monaco-editor')) {
-              return 'vendor-monaco';
-            }
           }
         }
       }

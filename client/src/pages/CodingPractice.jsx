@@ -3,7 +3,15 @@ import { apiRequest } from '../utils/api';
 import GlassCard from '../components/GlassCard';
 import { useNotification } from '../context/NotificationContext';
 import { CardSkeleton } from '../components/LoadingSkeleton';
-import Editor from '@monaco-editor/react';
+
+// CodeMirror 6 Core & Extensions Imports
+import CodeMirror from '@uiw/react-codemirror';
+import { javascript } from '@codemirror/lang-javascript';
+import { python } from '@codemirror/lang-python';
+import { cpp } from '@codemirror/lang-cpp';
+import { java } from '@codemirror/lang-java';
+import { vscodeDark, vscodeLight } from '@uiw/codemirror-theme-vscode';
+
 import { 
   Play, 
   Terminal, 
@@ -55,7 +63,7 @@ const COMPANIES = [
   "Accenture"
 ];
 
-// Standard SaaS-quality boilerplate templates for each programming language
+// Standard SaaS-quality starter templates for each programming language
 const DEFAULT_TEMPLATES = {
   c: `#include <stdio.h>
 
@@ -114,18 +122,29 @@ const CodingPractice = () => {
   const [editorHeight, setEditorHeight] = useState(62); // split height %
   const [isResizingWidth, setIsResizingWidth] = useState(false);
   const [isResizingHeight, setIsResizingHeight] = useState(false);
-  
-  // Monaco Loading & Fallback state
-  const [monacoLoaded, setMonacoLoaded] = useState(false);
-  const [useFallbackEditor, setUseFallbackEditor] = useState(false);
 
   const containerRef = useRef(null);
   const rightContainerRef = useRef(null);
-  const textareaRef = useRef(null);
-  const gutterRef = useRef(null);
   const lastTemplateRef = useRef('');
   
   const { addToast } = useNotification();
+
+  // Map selected language to CodeMirror language extension plugin
+  const getLanguageExtension = useCallback((lang) => {
+    switch (lang) {
+      case 'javascript':
+        return [javascript()];
+      case 'python':
+        return [python()];
+      case 'cpp':
+      case 'c':
+        return [cpp()];
+      case 'java':
+        return [java()];
+      default:
+        return [javascript()];
+    }
+  }, []);
 
   // Load challenges from server
   const fetchChallenges = useCallback(async () => {
@@ -176,24 +195,6 @@ const CodingPractice = () => {
   useEffect(() => {
     fetchLeaderboard();
   }, []);
-
-  // Timer to trigger styled textarea fallback if Monaco CDN fails to load within 2 seconds
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (!monacoLoaded) {
-        console.log("Monaco load timeout: falling back to custom styled text editor.");
-        setUseFallbackEditor(true);
-      }
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, [monacoLoaded]);
-
-  // Synchronize textarea scroll position with line numbers gutter
-  const handleTextareaScroll = () => {
-    if (textareaRef.current && gutterRef.current) {
-      gutterRef.current.scrollTop = textareaRef.current.scrollTop;
-    }
-  };
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -300,8 +301,6 @@ const CodingPractice = () => {
       window.removeEventListener('mouseup', handleMouseUp);
     };
   }, [isResizingWidth, isResizingHeight]);
-
-  const lines = useMemo(() => (code || '').split('\n'), [code]);
 
   return (
     <div className="space-y-6 font-outfit text-brand-textSec">
@@ -522,7 +521,7 @@ const CodingPractice = () => {
                 <div className="h-6 w-1 rounded bg-white/10 group-hover:bg-white/40"></div>
               </div>
 
-              {/* Right Panel: Workspace Monaco Editor & Output Console */}
+              {/* Right Panel: Workspace CodeMirror 6 Editor & Output Console */}
               <div 
                 ref={rightContainerRef}
                 style={{ width: `${100 - leftWidth}%` }}
@@ -593,89 +592,24 @@ const CodingPractice = () => {
                     </button>
                   </div>
 
-                  {/* Monaco IDE Mount Container with correct flex properties */}
-                  <div className="flex-1 w-full rounded-xl overflow-hidden border border-white/5 shadow-inner bg-brand-dark/20 flex flex-col relative h-[calc(100%-55px)]">
-                    {useFallbackEditor ? (
-                      /* Resilient fallback text editor */
-                      <div className="flex h-full w-full bg-brand-dark/40 font-mono text-xs relative overflow-hidden">
-                        {/* Gutter Line Numbers */}
-                        <div 
-                          ref={gutterRef}
-                          className="select-none text-right pr-3.5 pl-3 py-3 text-white/20 bg-black/30 flex flex-col font-mono overflow-hidden h-full"
-                          style={{ 
-                            fontSize: `${fontSize}px`,
-                            lineHeight: '1.6',
-                            fontFamily: 'Consolas, Courier New, monospace'
-                          }}
-                        >
-                          {lines.map((_, idx) => (
-                            <span key={idx} className="block select-none">{idx + 1}</span>
-                          ))}
-                        </div>
-                        
-                        {/* Core text editing input */}
-                        <textarea
-                          ref={textareaRef}
-                          value={code}
-                          onChange={(e) => setCode(e.target.value)}
-                          onScroll={handleTextareaScroll}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Tab') {
-                              e.preventDefault();
-                              const start = e.target.selectionStart;
-                              const end = e.target.selectionEnd;
-                              const val = e.target.value;
-                              const newVal = val.substring(0, start) + '    ' + val.substring(end);
-                              setCode(newVal);
-                              setTimeout(() => {
-                                e.target.selectionStart = e.target.selectionEnd = start + 4;
-                              }, 0);
-                            }
-                          }}
-                          style={{ 
-                            fontSize: `${fontSize}px`,
-                            lineHeight: '1.6',
-                            fontFamily: 'Consolas, Courier New, monospace'
-                          }}
-                          className="flex-1 p-3 bg-transparent text-white/95 border-none outline-none resize-none h-full font-mono overflow-y-auto leading-relaxed focus:ring-0 focus:outline-none"
-                          placeholder="// Type your solution code here..."
-                        />
-                        <span className="absolute bottom-2.5 right-3.5 text-[9px] uppercase tracking-widest font-black text-brand-indigo/60 pointer-events-none select-none bg-brand-indigo/10 px-2 py-0.5 rounded border border-brand-indigo/20">
-                          Sandbox Editor Fallback
-                        </span>
-                      </div>
-                    ) : (
-                      /* Classic VS-Code-like Monaco component */
-                      <Editor
-                        height="100%"
-                        language={language === 'c' ? 'c' : (language === 'cpp' ? 'cpp' : language)}
-                        theme={editorTheme}
-                        value={code}
-                        onMount={() => {
-                          setMonacoLoaded(true);
-                          setUseFallbackEditor(false);
-                        }}
-                        onChange={(val) => { if (monacoLoaded) setCode(val || ''); }}
-                        loading={
-                          <div className="flex flex-col items-center justify-center h-full gap-2.5">
-                            <RefreshCw className="h-5 w-5 animate-spin text-brand-indigo" />
-                            <p className="text-[10px] text-brand-textSec animate-pulse uppercase tracking-wider font-extrabold">Instantiating Monaco compiler engine...</p>
-                          </div>
-                        }
-                        options={{
-                          fontSize: fontSize,
-                          minimap: { enabled: false },
-                          automaticLayout: true,
-                          tabSize: 2,
-                          fontFamily: 'Consolas, Courier New, monospace',
-                          quickSuggestions: { other: true, comments: true, strings: true },
-                          suggestOnTriggerCharacters: true,
-                          wordBasedSuggestions: true,
-                          cursorBlinking: 'smooth',
-                          formatOnPaste: true,
-                        }}
-                      />
-                    )}
+                  {/* CodeMirror 6 Mount Container */}
+                  <div className="flex-1 w-full rounded-xl overflow-hidden border border-white/5 shadow-inner bg-[#1e1e1e] flex flex-col relative h-[calc(100%-55px)]">
+                    <CodeMirror
+                      value={code}
+                      height="100%"
+                      theme={editorTheme === 'vs-dark' ? vscodeDark : vscodeLight}
+                      extensions={getLanguageExtension(language)}
+                      onChange={(val) => setCode(val)}
+                      style={{
+                        fontSize: `${fontSize}px`,
+                        fontFamily: 'Consolas, Courier New, monospace',
+                        height: '100%',
+                        width: '100%'
+                      }}
+                    />
+                    <span className="absolute bottom-2 right-4 text-[9px] uppercase tracking-widest font-black text-brand-indigo/40 pointer-events-none select-none px-2 py-0.5 rounded border border-brand-indigo/10 bg-brand-indigo/5">
+                      CodeMirror 6 Engine
+                    </span>
                   </div>
                 </div>
 
