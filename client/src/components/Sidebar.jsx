@@ -33,7 +33,6 @@ const Sidebar = () => {
     { to: '/career-coach', label: t('careerCoach'), icon: MessageSquare },
     { to: '/company-prep', label: t('companyPrep'), icon: Building2 },
     { to: '/profile', label: t('profile'), icon: User },
-    { to: '/subscriptions', label: t('subscriptions'), icon: CreditCard },
   ];
 
   return (
@@ -155,9 +154,6 @@ const Sidebar = () => {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-[11px] font-bold text-white truncate leading-none">{user.profile.name}</p>
-              <span className="text-[8px] text-brand-indigo uppercase font-bold tracking-widest mt-1 block">
-                {user.subscription?.plan}
-              </span>
             </div>
           </div>
         )}

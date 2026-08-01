@@ -219,15 +219,7 @@ const AdminPanel = () => {
               </GlassCard>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <GlassCard className="border-white/5 bg-brand-card flex flex-col gap-3">
-                <h4 className="font-bold text-white uppercase tracking-widest mb-1">Billing Tier Distro</h4>
-                <div className="space-y-2 leading-relaxed text-brand-textSec">
-                  <p className="flex justify-between border-b border-white/5 pb-2"><span>Free Tier:</span> <span className="font-bold text-white">{overview.subscriptions.free}</span></p>
-                  <p className="flex justify-between border-b border-white/5 pb-2"><span>Pro Tier:</span> <span className="font-bold text-white">{overview.subscriptions.pro}</span></p>
-                  <p className="flex justify-between"><span>Premium Tier:</span> <span className="font-bold text-white">{overview.subscriptions.premium}</span></p>
-                </div>
-              </GlassCard>
+            <div className="grid grid-cols-1 gap-6">
               <GlassCard className="border-white/5 bg-brand-card flex flex-col gap-3">
                 <h4 className="font-bold text-white uppercase tracking-widest mb-1">Response Latency</h4>
                 <div className="space-y-2 leading-relaxed text-brand-textSec">
@@ -249,7 +241,6 @@ const AdminPanel = () => {
                   <tr className="border-b border-white/5 text-brand-textSec font-bold bg-white/[0.01]">
                     <th className="py-3.5 px-4 uppercase tracking-wider text-[10px]">Name</th>
                     <th className="py-3.5 px-4 uppercase tracking-wider text-[10px]">Email</th>
-                    <th className="py-3.5 px-4 uppercase tracking-wider text-[10px]">Billing Plan</th>
                     <th className="py-3.5 px-4 uppercase tracking-wider text-[10px]">System Access</th>
                     <th className="py-3.5 px-4 text-right uppercase tracking-wider text-[10px]">Actions</th>
                   </tr>
@@ -259,7 +250,6 @@ const AdminPanel = () => {
                     <tr key={u._id} className="hover:bg-white/[0.02] transition-colors">
                       <td className="py-3 px-4 font-bold text-white">{u.profile.name}</td>
                       <td className="py-3 px-4">{u.email}</td>
-                      <td className="py-3 px-4 uppercase font-extrabold text-[10px] text-brand-indigo">{u.subscription?.plan}</td>
                       <td className="py-3 px-4 uppercase font-bold text-[10px]">{u.role}</td>
                       <td className="py-3 px-4 text-right">
                         <button

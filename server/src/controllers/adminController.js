@@ -14,22 +14,12 @@ const getSystemOverview = async (req, res, next) => {
     const totalInterviews = await Interview.countDocuments();
     const totalChallenges = await CodingChallenge.countDocuments();
 
-    // Calculate subscription breakdown
-    const proUsers = await User.countDocuments({ 'subscription.plan': 'pro' });
-    const premiumUsers = await User.countDocuments({ 'subscription.plan': 'premium' });
-    const freeUsers = await User.countDocuments({ 'subscription.plan': 'free' });
-
     res.status(200).json({
       totals: {
         users: totalUsers,
         resumes: totalResumes,
         interviews: totalInterviews,
         challenges: totalChallenges
-      },
-      subscriptions: {
-        free: freeUsers,
-        pro: proUsers,
-        premium: premiumUsers
       },
       apiUsage: {
         successRate: 99.4,

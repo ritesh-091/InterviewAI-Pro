@@ -48,9 +48,6 @@ const Navbar = () => {
       <div className="flex items-center gap-4">
         <h1 className="text-base font-extrabold text-white flex items-center gap-2">
           {t('welcomeBack')}, <span className="text-gradient-ai font-black">{user?.profile?.name || 'User'}</span>
-          <span className="ml-2 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-brand-indigo/10 border border-brand-indigo/35 text-brand-indigo shadow-[0_0_12px_rgba(99,102,241,0.2)]">
-            {user?.subscription?.plan || 'Free Tier'}
-          </span>
         </h1>
       </div>
 

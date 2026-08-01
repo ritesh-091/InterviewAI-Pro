@@ -56,22 +56,6 @@ const userSchema = new mongoose.Schema({
     linkedin: { type: String, default: '' },
     achievements: [{ type: String, default: [] }]
   },
-  subscription: {
-    plan: {
-      type: String,
-      enum: ['free', 'pro', 'premium'],
-      default: 'free'
-    },
-    status: {
-      type: String,
-      enum: ['active', 'trialing', 'canceled', 'none'],
-      default: 'none'
-    },
-    expiresAt: {
-      type: Date,
-      default: null
-    }
-  },
   streak: {
     currentStreak: { type: Number, default: 0 },
     lastActiveDate: { type: Date, default: null }

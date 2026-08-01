@@ -71,7 +71,7 @@ const register = async (req, res, next) => {
         role: user.role,
         isVerified: user.isVerified,
         profile: user.profile,
-        subscription: user.subscription,
+        subscription: { plan: 'free', status: 'none', expiresAt: null },
         streak: user.streak
       }
     });
@@ -138,7 +138,7 @@ const login = async (req, res, next) => {
         role: user.role,
         isVerified: user.isVerified,
         profile: user.profile,
-        subscription: user.subscription,
+        subscription: { plan: 'free', status: 'none', expiresAt: null },
         streak: user.streak
       }
     });
@@ -193,7 +193,7 @@ const googleLogin = async (req, res, next) => {
         role: user.role,
         isVerified: user.isVerified,
         profile: user.profile,
-        subscription: user.subscription,
+        subscription: { plan: 'free', status: 'none', expiresAt: null },
         streak: user.streak
       }
     });
@@ -315,7 +315,7 @@ const updateProfile = async (req, res, next) => {
         role: user.role,
         isVerified: user.isVerified,
         profile: user.profile,
-        subscription: user.subscription,
+        subscription: { plan: 'free', status: 'none', expiresAt: null },
         streak: user.streak
       }
     });

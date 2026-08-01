@@ -23,7 +23,6 @@ const CodingPractice = lazy(() => import('./pages/CodingPractice'));
 const CareerCoach = lazy(() => import('./pages/CareerCoach'));
 const CompanyPrep = lazy(() => import('./pages/CompanyPrep'));
 const Profile = lazy(() => import('./pages/Profile'));
-const Subscriptions = lazy(() => import('./pages/Subscriptions'));
 const AdminPanel = lazy(() => import('./pages/AdminPanel'));
 const RecruiterDashboard = lazy(() => import('./pages/RecruiterDashboard'));
 
@@ -68,7 +67,6 @@ function App() {
                               <Route path="/career-coach" element={<CareerCoach />} />
                               <Route path="/company-prep" element={<CompanyPrep />} />
                               <Route path="/profile" element={<Profile />} />
-                              <Route path="/subscriptions" element={<Subscriptions />} />
                               
                               {/* Recruiter Only Route */}
                               <Route

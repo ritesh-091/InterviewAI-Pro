@@ -25,7 +25,12 @@ const codingChallengeSchema = new mongoose.Schema({
     javascript: { type: String, required: true },
     python: { type: String, required: true },
     java: { type: String, required: true },
-    cpp: { type: String, required: true }
+    cpp: { type: String, required: true },
+    c: { type: String, required: false }
+  },
+  companyTags: {
+    type: [String],
+    default: []
   },
   testCases: [{
     input: { type: String, required: true },

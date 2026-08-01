@@ -2,83 +2,16 @@ const CodingChallenge = require('../models/CodingChallenge');
 const Analytics = require('../models/Analytics');
 const User = require('../models/User');
 const { executeCode } = require('../services/sandboxService');
+const { CHALLENGES } = require('../data/challengesData');
 
-// Default Seed Challenges to run if the collection is empty
-const SEED_CHALLENGES = [
-  {
-    title: "Two Sum",
-    description: "Given an array of integers `nums` and an integer `target`, return indices of the two numbers such that they add up to `target`.\nYou may assume that each input would have exactly one solution, and you may not use the same element twice.",
-    difficulty: "Easy",
-    category: "Arrays & Hashing",
-    codeTemplates: {
-      javascript: `function twoSum(nums, target) {\n  // Write your code here\n  \n}`,
-      python: `def two_sum(nums, target):\n    # Write your code here\n    pass`,
-      java: `public class Solution {\n    public int[] twoSum(int[] nums, int target) {\n        // Write your code here\n        return new int[]{};\n    }\n}`,
-      cpp: `class Solution {\npublic:\n    vector<int> twoSum(vector<int>& nums, int target) {\n        // Write your code here\n        return {};\n    }\n};`
-    },
-    testCases: [
-      { input: "([2, 7, 11, 15], 9)", expectedOutput: "[0, 1]", isHidden: false },
-      { input: "([3, 2, 4], 6)", expectedOutput: "[1, 2]", isHidden: false },
-      { input: "([3, 3], 6)", expectedOutput: "[0, 1]", isHidden: false }
-    ],
-    solution: {
-      timeComplexity: "O(n)",
-      spaceComplexity: "O(n)",
-      explanation: "We can use a hash map to map each value to its index. While iterating through the array, we check if the complement (target - nums[i]) exists in the map. If it does, we return its index and the current index."
-    }
-  },
-  {
-    title: "Reverse String",
-    description: "Write a function that reverses a string. The input string is given as an array of characters `s`.\nYou must do this by modifying the input array in-place with O(1) extra memory.",
-    difficulty: "Easy",
-    category: "Strings",
-    codeTemplates: {
-      javascript: `function reverseString(s) {\n  // Write your code here\n  return s.reverse();\n}`,
-      python: `def reverse_string(s):\n    # Write your code here\n    s.reverse()\n    return s`,
-      java: `public class Solution {\n    public void reverseString(char[] s) {\n        // Write your code here\n    }\n}`,
-      cpp: `class Solution {\npublic:\n    void reverseString(vector<char>& s) {\n        // Write your code here\n    }\n};`
-    },
-    testCases: [
-      { input: "(['h','e','l','l','o'])", expectedOutput: "['o','l','l','e','h']", isHidden: false },
-      { input: "(['H','a','n','n','a','h'])", expectedOutput: "['h','a','n','n','a','H']", isHidden: false }
-    ],
-    solution: {
-      timeComplexity: "O(n)",
-      spaceComplexity: "O(1)",
-      explanation: "Using a two-pointer approach, we set one pointer at the start and one at the end. We swap characters, then move pointers closer until they meet."
-    }
-  },
-  {
-    title: "Longest Substring Without Repeating Characters",
-    description: "Given a string `s`, find the length of the longest substring without repeating characters.",
-    difficulty: "Medium",
-    category: "Sliding Window",
-    codeTemplates: {
-      javascript: `function lengthOfLongestSubstring(s) {\n  // Write your code here\n  \n}`,
-      python: `def length_of_longest_substring(s):\n    # Write your code here\n    pass`,
-      java: `public class Solution {\n    public int lengthOfLongestSubstring(String s) {\n        // Write your code here\n        return 0;\n    }\n}`,
-      cpp: `class Solution {\npublic:\n    int lengthOfLongestSubstring(string s) {\n        // Write your code here\n        return 0;\n    }\n};`
-    },
-    testCases: [
-      { input: "(\"abcabcbb\")", expectedOutput: "3", isHidden: false },
-      { input: "(\"bbbbb\")", expectedOutput: "1", isHidden: false },
-      { input: "(\"pewwkew\")", expectedOutput: "3", isHidden: false }
-    ],
-    solution: {
-      timeComplexity: "O(n)",
-      spaceComplexity: "O(min(m, n))",
-      explanation: "We utilize a sliding window with a set/map representing characters. We slide the right boundary and, if a repeat character is hit, shrink the left boundary."
-    }
-  }
-];
-
-// Helper to seed challenges if database is empty
+// Helper to seed challenges if database is empty or outdated
 const seedChallengesIfNeeded = async () => {
   try {
     const count = await CodingChallenge.countDocuments();
-    if (count === 0) {
-      await CodingChallenge.insertMany(SEED_CHALLENGES);
-      console.log('Seeded default coding challenges successfully!');
+    if (count < 150) {
+      await CodingChallenge.deleteMany({});
+      await CodingChallenge.insertMany(CHALLENGES);
+      console.log(`Seeded ${CHALLENGES.length} coding challenges successfully!`);
     }
   } catch (error) {
     console.error('Error seeding coding challenges:', error);
@@ -96,7 +29,23 @@ if (mongoose.connection.readyState === 1) {
 // 1. Get Coding Challenges
 const getChallenges = async (req, res, next) => {
   try {
-    const challenges = await CodingChallenge.find({}).select('-testCases.isHidden');
+    const { category, difficulty, search, company } = req.query;
+    const query = {};
+
+    if (category) {
+      query.category = category;
+    }
+    if (difficulty) {
+      query.difficulty = difficulty;
+    }
+    if (company) {
+      query.companyTags = company;
+    }
+    if (search) {
+      query.title = { $regex: search, $options: 'i' };
+    }
+
+    const challenges = await CodingChallenge.find(query).select('-testCases.isHidden');
     res.status(200).json(challenges);
   } catch (error) {
     next(error);

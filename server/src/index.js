@@ -66,7 +66,6 @@ const startServer = async () => {
     app.use('/api/analytics', require('./routes/analytics'));
     app.use('/api/notifications', require('./routes/notifications'));
     app.use('/api/admin', require('./routes/admin'));
-    app.use('/api/subscriptions', require('./routes/subscriptions'));
     app.use('/api/recruiter', require('./routes/recruiter'));
     app.use('/api/schedule', require('./routes/schedule'));
 

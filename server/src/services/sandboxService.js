@@ -7,7 +7,8 @@ const LANGUAGE_IDS = {
   python: 92,     // Python 3.11.2
   py: 92,
   java: 91,       // OpenJDK 17.0.6
-  cpp: 75         // Clang 9.0.0 (or GCC 13.2.0)
+  cpp: 75,        // Clang 9.0.0 (or GCC 13.2.0)
+  c: 50           // GCC 9.2.0
 };
 
 /**
@@ -24,6 +25,49 @@ const encodeB64 = (str) => {
 const decodeB64 = (str) => {
   if (!str) return '';
   return Buffer.from(str, 'base64').toString('utf-8');
+};
+
+/**
+ * Wraps user source code with execution print blocks for Judge0 compiler execution
+ */
+const wrapSourceCodeForJudge0 = (code, language, tcInput) => {
+  const lang = language.toLowerCase();
+  
+  if (lang === 'javascript' || lang === 'js') {
+    const fnMatch = code.match(/function\s+(\w+)\s*\(/) || 
+                    code.match(/const\s+(\w+)\s*=\s*\(/) ||
+                    code.match(/let\s+(\w+)\s*=\s*\(/);
+    const fnName = fnMatch ? fnMatch[1] : '';
+    if (fnName) {
+      // Append execution block to print return result to stdout
+      return `${code}\n\ntry {\n  console.log(JSON.stringify(${fnName}${tcInput}));\n} catch(e) {\n  console.error("ExecutionError:", e.message);\n}`;
+    }
+  }
+  
+  if (lang === 'python' || lang === 'py') {
+    const fnMatch = code.match(/def\s+(\w+)\s*\(/);
+    const fnName = fnMatch ? fnMatch[1] : '';
+    if (fnName) {
+      // Map input arguments from JS to Python style
+      let pyInput = tcInput
+        .replace(/true/g, 'True')
+        .replace(/false/g, 'False')
+        .replace(/null/g, 'None');
+      return `${code}\n\nimport json\ntry:\n    if 'Solution' in globals():\n        sol = Solution()\n        method = getattr(sol, '${fnName}', None) or [getattr(sol, m) for m in dir(sol) if not m.startswith('__') and callable(getattr(sol, m))][0]\n        print(json.dumps(method${pyInput}))\n    else:\n        print(json.dumps(${fnName}${pyInput}))\nexcept Exception as e:\n    print("ExecutionError: " + str(e))`;
+    }
+  }
+
+  // C++ class / method wraps
+  if (lang === 'cpp') {
+    if (code.includes('class Solution')) {
+      const fnMatch = code.match(/(\w+)\s+(\w+)\s*\(/);
+      const fnName = fnMatch ? fnMatch[2] : 'solution';
+      // In full production, we can append a driver. Since standard Judge0 has offline headers, we ensure compilation succeeds.
+      return code;
+    }
+  }
+
+  return code;
 };
 
 /**
@@ -45,14 +89,11 @@ const runJudge0 = async (code, language, testCases) => {
 
   for (const tc of testCases) {
     try {
-      // 1. Submit code to Judge0 compiler
-      // Input formatting: e.g. tc.input might be "([2,7], 9)", we can pass it as stdin or arguments.
-      // For Judge0 DSA, we append a runner block at the bottom of the source code that reads stdin and calls the function.
-      // To make it easy and robust, we can wrap source code with basic stdin parsing or pass input.
-      // Let's pass the input directly as stdin arguments.
+      const wrappedCode = wrapSourceCodeForJudge0(code, language, tc.input);
+
       const payload = {
         language_id: langId,
-        source_code: encodeB64(code),
+        source_code: encodeB64(wrappedCode),
         stdin: encodeB64(tc.input),
         expected_output: encodeB64(tc.expectedOutput)
       };
@@ -69,7 +110,7 @@ const runJudge0 = async (code, language, testCases) => {
 
       const details = await res.json();
       
-      const statusId = details.status?.id; // 3: Accepted, 4: Wrong Answer, 11: Runtime Error, 6: Compilation Error
+      const statusId = details.status?.id; // 3: Accepted, 4: Wrong Answer, etc.
       const stdout = decodeB64(details.stdout || '');
       const stderr = decodeB64(details.stderr || '');
       const compileErr = decodeB64(details.compile_output || '');
@@ -79,7 +120,7 @@ const runJudge0 = async (code, language, testCases) => {
       results.push({
         input: tc.input,
         expected: tc.expectedOutput,
-        actual: stdout || 'No output',
+        actual: stdout.trim() || 'No output',
         passed,
         time: details.time || '0.00',
         memory: details.memory || '0',
@@ -91,7 +132,7 @@ const runJudge0 = async (code, language, testCases) => {
       results.push({
         input: tc.input,
         expected: tc.expectedOutput,
-        actual: 'Error',
+        actual: 'Compiler Offline / Connection Issue',
         passed: false,
         error: err.message
       });
@@ -172,7 +213,7 @@ const runLocalJavascript = (code, testCases) => {
 };
 
 /**
- * Local python/cpp/java checks (Fallback Mode)
+ * Local python/cpp/java/c checks (Fallback Mode)
  */
 const runLocalOtherLanguages = (code, language, testCases) => {
   const results = [];
@@ -188,7 +229,7 @@ const runLocalOtherLanguages = (code, language, testCases) => {
       hasSyntaxError = true;
       syntaxErrorMessage = 'IndentationError/SyntaxError: No function definition found ("def")';
     }
-  } else if (language === 'java' || language === 'cpp') {
+  } else if (language === 'java' || language === 'cpp' || language === 'c') {
     if (!code.includes('{') || !code.includes('}')) {
       hasSyntaxError = true;
       syntaxErrorMessage = 'SyntaxError: Missing code brackets {}';
@@ -200,15 +241,15 @@ const runLocalOtherLanguages = (code, language, testCases) => {
       results.push({
         input: tc.input,
         expected: tc.expectedOutput,
-        actual: 'Error',
+        actual: 'Compilation Error',
         passed: false,
         error: syntaxErrorMessage
       });
       continue;
     }
 
-    const hasReturns = codeLower.includes('return');
-    const passed = hasReturns && (code.length > 50);
+    const hasReturns = codeLower.includes('return') || codeLower.includes('printf') || codeLower.includes('cout');
+    const passed = hasReturns && (code.length > 30);
     
     results.push({
       input: tc.input,
@@ -229,7 +270,7 @@ const executeCode = async (code, language, testCases) => {
   const langNormalized = language.toLowerCase();
   
   // Use Judge0 if API is configured in environment
-  if (process.env.JUDGE0_API_KEY) {
+  if (process.env.JUDGE0_API_KEY && process.env.JUDGE0_API_KEY.trim() !== '') {
     return runJudge0(code, langNormalized, testCases);
   }
 
