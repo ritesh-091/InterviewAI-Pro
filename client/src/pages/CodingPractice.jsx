@@ -655,7 +655,7 @@ const CodingPractice = () => {
                           setMonacoLoaded(true);
                           setUseFallbackEditor(false);
                         }}
-                        onChange={(val) => setCode(val || '')}
+                        onChange={(val) => { if (monacoLoaded) setCode(val || ''); }}
                         loading={
                           <div className="flex flex-col items-center justify-center h-full gap-2.5">
                             <RefreshCw className="h-5 w-5 animate-spin text-brand-indigo" />
