@@ -1,5 +1,12 @@
 const winston = require('winston');
 const path = require('path');
+const fs = require('fs');
+
+// Ensure logs directory exists
+const logsDir = path.join(__dirname, '../../logs');
+if (!fs.existsSync(logsDir)) {
+  fs.mkdirSync(logsDir, { recursive: true });
+}
 
 // Configure Winston Logger
 const logger = winston.createLogger({
@@ -16,14 +23,15 @@ const logger = winston.createLogger({
       )
     }),
     new winston.transports.File({ 
-      filename: path.join(__dirname, '../../logs/error.log'), 
+      filename: path.join(logsDir, 'error.log'), 
       level: 'error' 
     }),
     new winston.transports.File({ 
-      filename: path.join(__dirname, '../../logs/combined.log') 
+      filename: path.join(logsDir, 'combined.log') 
     })
   ]
 });
+
 
 // Prometheus telemetries storage
 const requestCounter = {};

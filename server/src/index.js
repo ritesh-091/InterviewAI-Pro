@@ -97,7 +97,14 @@ const startServer = async () => {
     });
 
     // Serve static assets from the React client build directory
-    const clientBuildPath = path.join(__dirname, '../../client/dist');
+    const possibleBuildPaths = [
+      path.join(__dirname, '../../client/dist'),
+      path.join(process.cwd(), 'client/dist'),
+      path.join(process.cwd(), '../client/dist'),
+      path.join(__dirname, '../public')
+    ];
+
+    const clientBuildPath = possibleBuildPaths.find(p => fs.existsSync(p)) || possibleBuildPaths[0];
     app.use(express.static(clientBuildPath));
 
     // Serve index.html for all non-API paths (to let React Router handle client-side routing)
@@ -117,13 +124,15 @@ const startServer = async () => {
     app.use(errorHandler);
 
     const PORT = process.env.PORT || 5000;
-    server.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
+    const HOST = '0.0.0.0';
+    server.listen(PORT, HOST, () => {
+      console.log(`Server running on http://${HOST}:${PORT}`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);
     process.exit(1);
   }
 };
+
 
 startServer();
